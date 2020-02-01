@@ -8,6 +8,7 @@ import {Route, BrowserRouter as Router, Switch} from "react-router-dom";
 import Home from "./Components/Home";
 import Contact from "./Components/Contact";
 import Sacrifice from "./Components/Sacrifice";
+import You from "./Components/You";
 
 const styles = theme => ({});
 
@@ -25,6 +26,7 @@ class App extends React.Component {
                                     <Route exact path="/" component={Home}/>
                                     <Route path="/contact" component={Contact}/>
                                     <Route path="/sacrifice" component={Sacrifice}/>
+                                    <Route path="/you" component={You}/>
                                 </Switch>
                             </div>
                         </Router>
