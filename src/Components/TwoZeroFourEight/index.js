@@ -1,49 +1,45 @@
 import React from "react";
 import {withStyles} from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
+import {Paper} from "@material-ui/core";
+import Tile from "./Tile";
+import {Swipeable} from "react-swipeable"
 import Typography from "@material-ui/core/Typography";
-import {blue, grey, red} from "@material-ui/core/colors";
-import classNames from "classnames";
-import LinearProgress from "@material-ui/core/LinearProgress";
-import withWidth from "@material-ui/core/withWidth";
-import {TextField} from "@material-ui/core";
 
 const styles = theme => ({
     root: {
-        [theme.breakpoints.down("xs")]: {
-            padding: theme.spacing(4, 4),
-        },
-        [theme.breakpoints.up("sm")]: {
-            padding: theme.spacing(4, 4),
-        },
+        padding: theme.spacing(0, 2),
     },
-    phrase: {
+    title: {
         padding: theme.spacing(4, 0),
     },
-    done: {
-        color: grey[200],
+    grid: {
+        touchAction: "none",
+        padding: theme.spacing(1),
     },
-    current: {
-        color: blue[500],
+    row: {
+        display: "flex",
+        width: "100%",
     },
-    rest: {
-        color: grey[800],
-    },
-    err: {
-        color: red[500],
+    tileContainer: {
+        flexGrow: 1,
     }
 });
 
-class Skyfall extends React.Component {
+const dirs = ["Up", "Down", "Left", "Right"];
+
+
+class TwoZeroFourEight extends React.Component {
     constructor(props) {
         super(props);
-        const phrase = getPhrase();
+        const n = 4;
+        this.swipeConfig = {};
+        for (let i = 0; i < dirs.length; ++i) {
+            this.swipeConfig[`onSwiped${dirs[i]}`] = this.onMove.bind(this, dirs[i]);
+        }
         this.state = {
-            stage: 0,
-            index: 0,
-            phrase: phrase,
-            typographyVariant: this.getVariant(phrase),
-            err: false,
+            stage: "",
+            tiles: initTiles(n),
         };
         document.addEventListener("keyup", (event) => {
             const keyName = event.key;
@@ -54,81 +50,215 @@ class Skyfall extends React.Component {
 
     render() {
         const {classes} = this.props;
-        const {phrase, index, stage, err, typographyVariant} = this.state;
+        const {tiles} = this.state;
         return (
-            <Container className={classes.root}>
-                <LinearProgress variant="determinate" value={100 * index / phrase.length}/>
-                <Typography
-                    className={classes.phrase}
-                    variant={typographyVariant}
-                    align={"center"}
-                >
-                    <span className={classes.done}>{phrase.slice(0, index)}</span>
-                    <span className={classNames({[classes.current]: true, [classes.err]: err})}>{phrase[index]}</span>
-                    <span className={classes.rest}>{phrase.slice(index + 1)}</span>
-                </Typography>
-                <TextField autoFocus fullWidth style={{display: "none"}}/>
+            <Container className={classes.root} maxWidth={"sm"}>
+                <Typography className={classes.title} align={"center"} variant={"h1"}>2048</Typography>
+                <Swipeable {...this.swipeConfig}>
+                    <Paper className={classes.grid} variant={"outlined"}>
+                        {
+                            tiles.map((row, i) => (
+                                    <div key={`${i}`} className={classes.row}>
+                                        {
+                                            row.map((tile, j) =>
+                                                <div className={classes.tileContainer} key={`${i},${j}`}>
+                                                    <Tile val={tile}/>
+                                                </div>
+                                            )
+                                        }
+                                    </div>
+                                )
+                            )
+                        }
+                    </Paper>
+                </Swipeable>
             </Container>
         );
     }
 
+
     handleKeyUp(key) {
-        this.setState(({phrase, index}) => {
-            if (phrase && index < phrase.length) {
-                if (key.toLowerCase() === phrase[index].toLowerCase()) {
-                    ++index;
-                    if (index === phrase.length) {
-                        return {index, stage: 2};
-                    }
-                    return {index, err: false};
-                } else {
-                    return {err: true};
-                }
+        switch (key) {
+            case "ArrowUp":
+            case "ArrowDown":
+            case "ArrowLeft":
+            case "ArrowRight":
+                return this.onMove(key.slice(5));
+            default:
+        }
+    }
 
+
+    onMove(dir) {
+        const {tiles} = this.state;
+        const r = tiles.length, c = tiles.length;
+        let n = dir === "Up" || dir === "Down" ? c : r;
+        const newTiles = makeTiles(tiles.length, tiles.length);
+        for (let i = 0; i < n; ++i) {
+            merge(newTiles, tiles, i, dir);
+        }
+        if (!tilesAreEqual(tiles, newTiles)) {
+            if (!addRandomTile(newTiles)) {
+                this.setState({stage: "gameOver"});
             }
-        })
+            this.setState({tiles: newTiles});
+        }
     }
 
-    onPhraseDone() {
 
+}
+
+function getRandomTileValue() {
+    return 2;
+}
+
+function initTiles(n) {
+    const tiles = [];
+    for (let i = 0; i < n; ++i) {
+        tiles.push([]);
+        for (let j = 0; j < n; ++j) {
+            tiles[i].push(randInt(2) ? Math.pow(2, 1 + randInt(3)) : 0);
+        }
     }
+    return tiles;
+}
 
-    getVariant(phrase) {
-        const {width} = this.props;
-        const length = phrase.length;
-        const desktopBP = [95, 65, 47, 37, 23, 0];
-        const mobileBP = [22, 16, 0, 0, 0, 0];
-        let breakpoints;
-        if (/xs/.test(width)) {
-            breakpoints = mobileBP;
+function tilesAreEqual(tiles1, tiles2) {
+    for (let i = 0; i < tiles1.length; ++i) {
+        for (let j = 0; j < tiles2.length; ++j) {
+            if (tiles1[i][j] !== tiles2[i][j]) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function addRandomTile(tiles) {
+    const zeros_i = [], zeros_j = [];
+    for (let i = 0; i < tiles.length; ++i) {
+        for (let j = 0; j < tiles[i].length; ++j) {
+            if (tiles[i][j]) {
+                tiles[i][j] = tiles[i][j];
+            } else {
+                zeros_i.push(i);
+                zeros_j.push(j);
+            }
+        }
+    }
+    if (zeros_j.length === 0) {
+        return false;
+    }
+    const k = randInt(zeros_i.length);
+    tiles[zeros_i[k]][zeros_j[k]] = getRandomTileValue();
+    return true;
+}
+
+function makeTiles(r, c) {
+    const ret = [];
+    for (let i = 0; i < r; ++i) {
+        ret.push([]);
+        for (let j = 0; j < c; ++j) {
+            ret[i].push(0);
+        }
+    }
+    return ret;
+}
+
+function top(stack) {
+    if (stack.length > 0) {
+        return stack[stack.length - 1];
+    }
+    return null;
+}
+
+function push(stack, val) {
+    stack.push(val);
+}
+
+function updateTop(stack, val) {
+    stack[stack.length - 1] = val;
+}
+
+function push_n(stack, n, val) {
+    for (let i = 0; i < n; ++i) {
+        push(stack, val);
+    }
+}
+
+function overlay(tiles, values, i, type) {
+    if (type === "row") {
+        for (let j = 0; j < tiles[i].length; ++j) {
+            tiles[i][j] = values[j];
+        }
+    } else {
+        for (let j = 0; j < tiles.length; ++j) {
+            tiles[j][i] = values[j];
+        }
+    }
+}
+
+function magic(stack, tile, plain_push) {
+    if (tile !== 0) {
+        if (plain_push) {
+            push(stack, tile);
+            plain_push = false;
         } else {
-            breakpoints = desktopBP;
-        }
-        for (let i = 0; i < 6; ++i) {
-            if (length > breakpoints[i]) {
-                return `h${6 - i}`;
+            if (top(stack) === tile) {
+                updateTop(stack, 2 * tile);
+                plain_push = true;
+            } else {
+                push(stack, tile);
+                plain_push = false;
             }
         }
     }
+    return plain_push;
 }
 
-function getPhrase() {
-    const phrases = [
-        "Age cannot wither her, nor custom stale her infinite variety",
-        "Batten down the hatches",
-        "Channel surfing",
-        "Dead as a doornail",
-        "Eeny, meeny, miny, mo",
-        "From sea to shining sea",
-        "srinskit",
-        "The plot of Skyfall is unlike previous Bond films",
-    ];
-    return phrases[getRandomInt(phrases.length)];
+function merge(newTiles, tiles, rc, dir) {
+    let stack = [], plain_push = true;
+    if (dir === "Left") {
+        for (let i = 0; i < tiles[rc].length; ++i) {
+            plain_push = magic(stack, tiles[rc][i], plain_push);
+        }
+        push_n(stack, tiles[rc].length - stack.length, 0);
+        overlay(newTiles, stack, rc, "row");
+    } else if (dir === "Right") {
+        for (let i = tiles[rc].length - 1; i >= 0; --i) {
+            plain_push = magic(stack, tiles[rc][i], plain_push);
+        }
+        push_n(stack, tiles[rc].length - stack.length, 0);
+        stack.reverse();
+        overlay(newTiles, stack, rc, "row");
+    } else if (dir === "Up") {
+        for (let i = 0; i < tiles.length; ++i) {
+            plain_push = magic(stack, tiles[i][rc], plain_push);
+        }
+        push_n(stack, tiles.length - stack.length, 0);
+        overlay(newTiles, stack, rc, "col");
+    } else if (dir === "Down") {
+        for (let i = tiles.length - 1; i >= 0; --i) {
+            plain_push = magic(stack, tiles[i][rc], plain_push);
+        }
+        push_n(stack, tiles.length - stack.length, 0);
+        stack.reverse();
+        overlay(newTiles, stack, rc, "col");
+    }
 }
 
-function getRandomInt(max) {
+function randInt(max) {
     return Math.floor(Math.random() * Math.floor(max));
 }
 
+function shuffle(arr) {
+    let tmp, j;
+    for (let i = 0; i < arr.length; ++i) {
+        j = randInt(arr.length);
+        tmp = arr[j];
+        arr[j] = arr[i];
+        arr[i] = tmp;
+    }
+}
 
-export default withWidth()(withStyles(styles, {withTheme: true})(Skyfall));
+export default withStyles(styles, {withTheme: true})(TwoZeroFourEight);

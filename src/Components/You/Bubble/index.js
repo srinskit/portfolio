@@ -1,7 +1,6 @@
 import React from "react";
 import {withStyles} from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
-import CardMedia from "@material-ui/core/CardMedia";
 import CardActionArea from "@material-ui/core/CardActionArea";
 import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
@@ -24,6 +23,7 @@ class Comp extends React.Component {
                     image ?
                         <CardActionArea>
                             <img
+                                alt={image}
                                 className={classes.media}
                                 src={image}
                             />

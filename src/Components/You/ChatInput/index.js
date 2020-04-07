@@ -9,6 +9,7 @@ import SendIcon from '@material-ui/icons/Send';
 
 const useStyles = makeStyles(theme => ({
     root: {
+        height: "100%",
         padding: theme.spacing(.5, 1),
         display: 'flex',
         alignItems: 'center',
@@ -21,7 +22,7 @@ const useStyles = makeStyles(theme => ({
         padding: theme.spacing(1),
     },
     divider: {
-        height: 28,
+        height: "90%",
         margin: theme.spacing(.5),
     },
 }));
