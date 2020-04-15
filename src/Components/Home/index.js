@@ -5,6 +5,7 @@ import TreeView from '@material-ui/lab/TreeView';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import TreeItem from '@material-ui/lab/TreeItem';
+import Typewriter from "../Typewriter";
 
 const styles = theme => ({
     root: {
@@ -22,7 +23,16 @@ class Home extends React.Component {
         return (
             <div className={classes.root}>
                 <Typography variant={"h1"}>
-                    Hi.
+                    Hi,
+                </Typography>
+                <Typography variant={"h3"} align={"left"}>
+                    <Typewriter
+                        prefix={"I speak "}
+                        words={["C", "C++", "Python", "Javascript", "Tulu"]}
+                        cursor={"blink"}
+                        loop
+                        clear
+                    />
                 </Typography>
                 <TreeView
                     className={classes.tree}
